@@ -115,6 +115,52 @@ Route::prefix('clinico')->group(function () {
     Route::post('/historias/{id}/consentimientos', [ConsentimientoController::class, 'crear'])->name('clinico.consentimientos.crear');
     Route::post('/consentimientos/{id}/firmar', [ConsentimientoController::class, 'firmar'])->name('clinico.consentimientos.firmar');
     Route::post('/consentimientos/{id}/revocar', [ConsentimientoController::class, 'revocar'])->name('clinico.consentimientos.revocar');
+
+    // Estación Odontológica Unificada
+    Route::get('/estacion/{id?}', function ($id = null) {
+        $historia = null;
+        if ($id) {
+            $historia = \App\Models\HistoriaClinica::with(['paciente', 'evoluciones.odontologo'])->find($id);
+        }
+        if (! $historia) {
+            $historia = \App\Models\HistoriaClinica::with(['paciente', 'evoluciones.odontologo'])->first();
+        }
+
+        if (! $historia) {
+            $paciente = \App\Models\Paciente::first();
+            $odontologo = \App\Models\Usuario::whereHas('rol', fn($q) => $q->where('slug', 'odontologo'))->first()
+                ?? \App\Models\Usuario::first();
+            $cie = \App\Models\CatalogoCie::first();
+
+            if ($paciente && $odontologo && $cie) {
+                $historia = \App\Models\HistoriaClinica::create([
+                    'paciente_id' => $paciente->id,
+                    'odontologo_id' => $odontologo->id,
+                    'numero_historia' => 'HC-' . date('Ymd') . '-001',
+                    'motivo_consulta' => 'Consulta de valoración odontológica general',
+                    'enfermedad_actual' => 'Paciente asiste a chequeo preventivo de rutina.',
+                    'diagnostico_principal_cie_id' => $cie->id,
+                    'plan_tratamiento' => 'Valoración diagnóstica, odontograma y profilaxis.',
+                    'pronostico' => 'FAVORABLE',
+                    'estado' => 'ABIERTA',
+                ]);
+                $historia->load(['paciente', 'evoluciones.odontologo']);
+            }
+        }
+
+        $paciente = $historia?->paciente ?? \App\Models\Paciente::first();
+        $cupsList = \App\Models\CatalogoCups::where('activo', true)->get();
+
+        return view('clinico.estacion_unificada', [
+            'historia' => $historia,
+            'paciente' => $paciente,
+            'cupsList' => $cupsList,
+        ]);
+    })->name('clinico.estacion');
+
+    // Fórmulas Médicas y Prescripciones Odontológicas
+    Route::post('/historias/{id}/formulas', [\App\Http\Controllers\Clinico\FormulaMedicaController::class, 'crear'])->name('clinico.formulas.crear');
+    Route::get('/formulas/{id}/imprimir', [\App\Http\Controllers\Clinico\FormulaMedicaController::class, 'imprimir'])->name('clinico.formulas.imprimir');
 });
 
 // ─── 5. MÓDULO DE FACTURACIÓN Y RIPS ──────────────────────────────────────────

@@ -306,5 +306,85 @@ class OdonTechNormativaTest extends TestCase
             'sangrado_al_sondaje' => true,
         ]);
     }
+
+    /**
+     * Test 7: Prescripción Médica Farmacológica con sello ReTHUS (Decreto 2200 de 2005).
+     */
+    public function test_prescripcion_farmacologica_emision_con_rethus(): void
+    {
+        $odontologo = Usuario::where('correo_electronico', 'odontologo@odontech.com.co')->first();
+        $paciente = Paciente::where('numero_documento', '1018234567')->first();
+        $cie = CatalogoCie::first();
+
+        $historia = HistoriaClinica::create([
+            'paciente_id' => $paciente->id,
+            'odontologo_id' => $odontologo->id,
+            'numero_historia' => 'HC-RECETA-001',
+            'motivo_consulta' => 'Infección dental',
+            'enfermedad_actual' => 'Absceso periapical',
+            'diagnostico_principal_cie_id' => $cie->id,
+            'plan_tratamiento' => 'Terapia antimicrobiana y endodoncia',
+            'pronostico' => 'FAVORABLE',
+            'estado' => 'ABIERTA',
+        ]);
+
+        $this->actingAs($odontologo);
+
+        $response = $this->postJson("/clinico/historias/{$historia->id}/formulas", [
+            'diagnostico_cie_id' => $cie->id,
+            'vigencia_dias' => 30,
+            'recomendaciones_generales' => 'Tomar con abundante agua',
+            'medicamentos' => [
+                [
+                    'medicamento_nombre' => 'Amoxicilina',
+                    'concentracion' => '500mg',
+                    'forma_farmaceutica' => 'Cápsulas',
+                    'via_administracion' => 'Oral',
+                    'dosis' => '1 cápsula cada 8 horas',
+                    'duracion_tratamiento' => '7 días',
+                    'cantidad_total' => '21 cápsulas',
+                    'indicaciones_uso' => 'Completar el ciclo antibiótico',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['exito' => true]);
+
+        $formulaId = $response->json('formula.id');
+
+        $this->assertDatabaseHas('formulas_medicas', [
+            'id' => $formulaId,
+            'paciente_id' => $paciente->id,
+        ]);
+
+        $this->assertDatabaseHas('formula_medicamentos', [
+            'formula_medica_id' => $formulaId,
+            'medicamento_nombre' => 'Amoxicilina',
+            'cantidad_total' => '21 cápsulas',
+        ]);
+
+        // Verificar vista imprimible
+        $resImpresion = $this->get("/clinico/formulas/{$formulaId}/imprimir");
+        $resImpresion->assertStatus(200)
+            ->assertSee('Amoxicilina')
+            ->assertSee($odontologo->registro_profesional);
+    }
+
+    /**
+     * Test 8: Renderizado de la Estación Clínica Unificada con pestañas clínicas.
+     */
+    public function test_estacion_clinica_unificada_renderiza_correctamente(): void
+    {
+        $odontologo = Usuario::where('correo_electronico', 'odontologo@odontech.com.co')->first();
+        $this->actingAs($odontologo);
+
+        $response = $this->get('/clinico/estacion');
+        $response->assertStatus(200)
+            ->assertSee('Estación Clínica Odontológica Unificada')
+            ->assertSee('Odontograma Anatómico FDI')
+            ->assertSee('Sondaje Periodontal Milimétrico');
+    }
 }
+
 

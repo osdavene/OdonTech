@@ -114,7 +114,7 @@
                 <a href="/pacientes/nuevo"><span>👤</span> Admisión & Habeas Data</a>
             </li>
             <li class="{{ request()->is('clinico*') ? 'activo' : '' }}">
-                <a href="/clinico/historias/1/odontograma/vista"><span>🩺</span> Estación Clínica FDI</a>
+                <a href="/clinico/estacion"><span>🩺</span> Estación Clínica Unificada</a>
             </li>
             <li class="{{ request()->is('facturacion*') ? 'activo' : '' }}">
                 <a href="/facturacion/panel"><span>🧾</span> Facturación DIAN & RIPS</a>
