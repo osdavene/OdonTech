@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Agenda;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogoCups;
 use App\Models\Cita;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
+use App\Models\Usuario;
 use App\Services\Auditoria\AuditoriaService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -41,9 +43,19 @@ class CitaController extends Controller
             ]);
         }
 
+        $pacientes = Paciente::where('acepta_tratamiento_datos', true)->orderBy('primer_nombre')->get();
+        $odontologos = Usuario::whereHas('rol', fn($q) => $q->where('slug', 'odontologo'))->get();
+        if ($odontologos->isEmpty()) {
+            $odontologos = Usuario::all();
+        }
+        $cupsList = CatalogoCups::where('activo', true)->get();
+
         return view('agenda.index', [
             'fecha' => $fecha,
             'citas' => $citas,
+            'pacientes' => $pacientes,
+            'odontologos' => $odontologos,
+            'cupsList' => $cupsList,
         ]);
     }
 
@@ -76,10 +88,16 @@ class CitaController extends Controller
             })->exists();
 
         if ($conflictoSillon) {
-            return response()->json([
-                'exito' => false,
-                'mensaje' => "El sillón dental No. {$datos['unidad_sillon_numero']} ya se encuentra ocupado en ese horario."
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'exito' => false,
+                    'mensaje' => "El sillón dental No. {$datos['unidad_sillon_numero']} ya se encuentra ocupado en ese horario."
+                ], 422);
+            }
+
+            return back()->withErrors([
+                'unidad_sillon_numero' => "El sillón dental No. {$datos['unidad_sillon_numero']} ya se encuentra ocupado en ese horario.",
+            ])->withInput();
         }
 
         $cita = Cita::create([
@@ -103,11 +121,16 @@ class CitaController extends Controller
             justificacion: "Agendamiento de cita odontológica para {$inicio->format('d/m/Y H:i')}"
         );
 
-        return response()->json([
-            'exito' => true,
-            'mensaje' => 'Cita odontológica agendada con éxito.',
-            'cita' => $cita->load(['paciente', 'odontologo']),
-        ], 201);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'exito' => true,
+                'mensaje' => 'Cita odontológica agendada con éxito.',
+                'cita' => $cita->load(['paciente', 'odontologo']),
+            ], 201);
+        }
+
+        return redirect()->route('agenda.citas.listar', ['fecha' => $inicio->format('Y-m-d')])
+            ->with('exito', 'Cita odontológica agendada con éxito.');
     }
 
     /**
