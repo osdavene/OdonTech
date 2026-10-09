@@ -17,7 +17,7 @@ class CitaController extends Controller
     /**
      * Lista las citas de un día específico o del día en curso, organizadas cronológicamente.
      */
-    public function listarPorFecha(Request $request): JsonResponse
+    public function listarPorFecha(Request $request): \Illuminate\Http\Response|JsonResponse|\Illuminate\View\View
     {
         $fecha = $request->query('fecha', Carbon::today()->format('Y-m-d'));
         $odontologoId = $request->query('odontologo_id');
@@ -32,10 +32,17 @@ class CitaController extends Controller
 
         $citas = $query->get();
 
-        return response()->json([
-            'exito' => true,
+        if ($request->wantsJson()) {
+            return response()->json([
+                'exito' => true,
+                'fecha' => $fecha,
+                'total_citas' => $citas->count(),
+                'citas' => $citas,
+            ]);
+        }
+
+        return view('agenda.index', [
             'fecha' => $fecha,
-            'total_citas' => $citas->count(),
             'citas' => $citas,
         ]);
     }

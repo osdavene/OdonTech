@@ -99,6 +99,9 @@
                             💾 RIPS JSON
                         </a>
                     @endif
+                    <a href="/facturacion/facturas/{{ $factura->id }}/imprimir" target="_blank" style="display: inline-block; padding: 4px 8px; background: #0369a1; color: white; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-decoration: none; margin-left: 4px;">
+                        🖨️ PDF
+                    </a>
                 </td>
             </tr>
             @empty
