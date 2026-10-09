@@ -220,4 +220,91 @@ class OdonTechNormativaTest extends TestCase
         $this->expectException(DomainException::class);
         $servicioInvima->validarLoteParaUsoClinico($loteVencido->fresh());
     }
+
+    /**
+     * Test 5: Módulo de Agenda - Agendamiento y transición en 1 clic a atención clínica.
+     */
+    public function test_agendamiento_cita_y_transicion_a_atencion_clinica(): void
+    {
+        $odontologo = Usuario::where('correo_electronico', 'odontologo@odontech.com.co')->first();
+        $paciente = Paciente::where('numero_documento', '1018234567')->first();
+
+        $this->actingAs($odontologo);
+
+        $response = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente->id,
+            'odontologo_id' => $odontologo->id,
+            'fecha_hora_inicio' => now()->addHour()->toDateTimeString(),
+            'duracion_minutos' => 45,
+            'unidad_sillon_numero' => 1,
+            'motivo_consulta' => 'Control de ortodoncia',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['exito' => true]);
+
+        $citaId = $response->json('cita.id');
+
+        // Transición en 1 clic a atención clínica
+        $resAtencion = $this->postJson("/agenda/citas/{$citaId}/iniciar-atencion");
+        $resAtencion->assertStatus(200)
+            ->assertJson(['exito' => true]);
+
+        $this->assertDatabaseHas('citas_odontologicas', [
+            'id' => $citaId,
+            'estado' => 'EN_ATENCION',
+        ]);
+    }
+
+    /**
+     * Test 6: Periodontograma - Sondaje de 6 puntos y cálculo de nivel de inserción clínica.
+     */
+    public function test_periodontograma_registra_sondaje_y_calcula_cal(): void
+    {
+        $odontologo = Usuario::where('correo_electronico', 'odontologo@odontech.com.co')->first();
+        $paciente = Paciente::where('numero_documento', '1018234567')->first();
+        $cie = CatalogoCie::where('codigo', 'K053')->first();
+
+        $historia = HistoriaClinica::create([
+            'paciente_id' => $paciente->id,
+            'odontologo_id' => $odontologo->id,
+            'numero_historia' => 'HC-PERIO-001',
+            'motivo_consulta' => 'Sangrado de encías',
+            'enfermedad_actual' => 'Movilidad dental e inflamación',
+            'diagnostico_principal_cie_id' => $cie->id,
+            'plan_tratamiento' => 'Terapia periodontal',
+            'pronostico' => 'RESERVADO',
+            'estado' => 'ABIERTA',
+        ]);
+
+        $this->actingAs($odontologo);
+
+        $response = $this->postJson("/clinico/historias/{$historia->id}/periodontograma", [
+            'indice_placa_porcentaje' => 25.5,
+            'indice_sangrado_porcentaje' => 30.0,
+            'diagnostico_periodontal' => 'Periodontitis crónica estadio II grado B',
+            'dientes' => [
+                [
+                    'numero_diente_fdi' => 16,
+                    'profundidad_vestibular_distal' => 5,
+                    'profundidad_vestibular_medio' => 3,
+                    'profundidad_vestibular_mesial' => 4,
+                    'margen_vestibular' => 2, // 2mm de recesión
+                    'sangrado_al_sondaje' => true,
+                    'movilidad_dental' => '1',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['exito' => true]);
+
+        $this->assertDatabaseHas('periodontograma_dientes', [
+            'numero_diente_fdi' => 16,
+            'profundidad_vestibular_distal' => 5,
+            'margen_vestibular' => 2,
+            'sangrado_al_sondaje' => true,
+        ]);
+    }
 }
+
