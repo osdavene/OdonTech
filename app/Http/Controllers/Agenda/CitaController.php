@@ -78,26 +78,70 @@ class CitaController extends Controller
         $inicio = Carbon::parse($datos['fecha_hora_inicio']);
         $fin = (clone $inicio)->addMinutes($datos['duracion_minutos']);
 
-        // Validación de no traslape en el mismo sillón dental
-        $conflictoSillon = Cita::where('unidad_sillon_numero', $datos['unidad_sillon_numero'])
+        // 1. Conflicto por Sillón Dental: Dos pacientes no pueden ocupar la misma unidad física al mismo tiempo
+        $conflictoSillon = Cita::with(['paciente'])
+            ->where('unidad_sillon_numero', $datos['unidad_sillon_numero'])
             ->whereNotIn('estado', ['CANCELADA', 'INASISTENCIA'])
-            ->where(function ($q) use ($inicio, $fin) {
-                $q->whereBetween('fecha_hora_inicio', [$inicio, $fin])
-                  ->orWhereBetween('fecha_hora_fin', [$inicio, $fin])
-                  ->orWhere(fn ($sub) => $sub->where('fecha_hora_inicio', '<=', $inicio)->where('fecha_hora_fin', '>=', $fin));
-            })->exists();
+            ->where('fecha_hora_inicio', '<', $fin)
+            ->where('fecha_hora_fin', '>', $inicio)
+            ->first();
 
         if ($conflictoSillon) {
+            $horaSil = $conflictoSillon->fecha_hora_inicio->format('h:i A') . ' a ' . $conflictoSillon->fecha_hora_fin->format('h:i A');
+            $pacienteNombre = $conflictoSillon->paciente?->nombre_completo ?? 'otro paciente';
+            $mensajeError = "Conflicto de Sillón: La unidad No. {$datos['unidad_sillon_numero']} ya está ocupada de {$horaSil} por {$pacienteNombre}.";
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'exito' => false,
-                    'mensaje' => "El sillón dental No. {$datos['unidad_sillon_numero']} ya se encuentra ocupado en ese horario."
+                    'mensaje' => $mensajeError,
                 ], 422);
             }
 
-            return back()->withErrors([
-                'unidad_sillon_numero' => "El sillón dental No. {$datos['unidad_sillon_numero']} ya se encuentra ocupado en ese horario.",
-            ])->withInput();
+            return back()->withErrors(['unidad_sillon_numero' => $mensajeError])->withInput();
+        }
+
+        // 2. Conflicto por Odontólogo: Un profesional no puede atender dos citas simultáneas en sillones distintos
+        $conflictoOdontologo = Cita::with(['paciente', 'odontologo'])
+            ->where('odontologo_id', $datos['odontologo_id'])
+            ->whereNotIn('estado', ['CANCELADA', 'INASISTENCIA'])
+            ->where('fecha_hora_inicio', '<', $fin)
+            ->where('fecha_hora_fin', '>', $inicio)
+            ->first();
+
+        if ($conflictoOdontologo) {
+            $horaOdo = $conflictoOdontologo->fecha_hora_inicio->format('h:i A') . ' a ' . $conflictoOdontologo->fecha_hora_fin->format('h:i A');
+            $mensajeError = "Conflicto de Profesional: El odontólogo ya tiene una atención asignada de {$horaOdo} en el Sillón {$conflictoOdontologo->unidad_sillon_numero}.";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'exito' => false,
+                    'mensaje' => $mensajeError,
+                ], 422);
+            }
+
+            return back()->withErrors(['odontologo_id' => $mensajeError])->withInput();
+        }
+
+        // 3. Conflicto por Paciente: Un paciente no puede tener dos citas agendadas al mismo tiempo
+        $conflictoPaciente = Cita::where('paciente_id', $datos['paciente_id'])
+            ->whereNotIn('estado', ['CANCELADA', 'INASISTENCIA'])
+            ->where('fecha_hora_inicio', '<', $fin)
+            ->where('fecha_hora_fin', '>', $inicio)
+            ->first();
+
+        if ($conflictoPaciente) {
+            $horaPac = $conflictoPaciente->fecha_hora_inicio->format('h:i A') . ' a ' . $conflictoPaciente->fecha_hora_fin->format('h:i A');
+            $mensajeError = "Conflicto de Paciente: Este paciente ya tiene una cita médica programada de {$horaPac}.";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'exito' => false,
+                    'mensaje' => $mensajeError,
+                ], 422);
+            }
+
+            return back()->withErrors(['paciente_id' => $mensajeError])->withInput();
         }
 
         $cita = Cita::create([

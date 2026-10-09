@@ -257,6 +257,100 @@ class OdonTechNormativaTest extends TestCase
     }
 
     /**
+     * Test 5.1: Prevención estricta de conflictos de agenda (Sillón ocupado, Odontólogo ocupado y Paciente ocupado).
+     */
+    public function test_prevencion_conflictos_agenda_sillon_odontologo_y_paciente(): void
+    {
+        $odontologo1 = Usuario::where('correo_electronico', 'odontologo@odontech.com.co')->first();
+        $admin = Usuario::where('correo_electronico', 'admin@odontech.com.co')->first();
+        $paciente1 = Paciente::where('numero_documento', '1018234567')->first();
+
+        // Crear un segundo paciente para pruebas
+        $paciente2 = Paciente::create([
+            'tipo_documento' => 'CC',
+            'numero_documento' => '52111222',
+            'primer_nombre' => 'Camilo',
+            'primer_apellido' => 'Duque',
+            'fecha_nacimiento' => '1988-03-20',
+            'sexo_biologico' => 'M',
+            'pais_residencia_codigo' => '170',
+            'departamento_codigo' => '11',
+            'municipio_codigo' => '11001',
+            'zona_residencia' => '01_URBANO',
+            'direccion_residencia' => 'Calle 50 # 10-20',
+            'telefono_principal' => '3123456789',
+            'tipo_usuario_rips' => '01',
+            'acepta_tratamiento_datos' => true,
+        ]);
+
+        $this->actingAs($odontologo1);
+
+        $horaInicio = now()->addDays(2)->setHour(10)->setMinute(0)->setSecond(0);
+
+        // 1. Cita Base: Paciente 1 con Odontólogo 1 en Sillón 1 de 10:00 AM a 10:45 AM (45 min)
+        $resBase = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente1->id,
+            'odontologo_id' => $odontologo1->id,
+            'fecha_hora_inicio' => $horaInicio->toDateTimeString(),
+            'duracion_minutos' => 45,
+            'unidad_sillon_numero' => 1,
+            'motivo_consulta' => 'Cita Base 10:00 a 10:45',
+        ]);
+        $resBase->assertStatus(201);
+
+        // 2. Conflicto de Sillón: Paciente 2 con Admin en Sillón 1 a las 10:15 AM (dentro de 10:00-10:45)
+        $resConflictoSillon = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente2->id,
+            'odontologo_id' => $admin->id,
+            'fecha_hora_inicio' => $horaInicio->copy()->addMinutes(15)->toDateTimeString(),
+            'duracion_minutos' => 30,
+            'unidad_sillon_numero' => 1, // Mismo sillón 1
+            'motivo_consulta' => 'Conflicto por sillón',
+        ]);
+        $resConflictoSillon->assertStatus(422)
+            ->assertJson(['exito' => false]);
+        $this->assertStringContainsString('Conflicto de Sillón', $resConflictoSillon->json('mensaje'));
+
+        // 3. Conflicto de Profesional: Odontólogo 1 asignado al Sillón 2 a las 10:15 AM
+        $resConflictoOdo = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente2->id,
+            'odontologo_id' => $odontologo1->id, // Mismo odontólogo
+            'fecha_hora_inicio' => $horaInicio->copy()->addMinutes(15)->toDateTimeString(),
+            'duracion_minutos' => 30,
+            'unidad_sillon_numero' => 2, // Diferente sillón
+            'motivo_consulta' => 'Conflicto por profesional',
+        ]);
+        $resConflictoOdo->assertStatus(422)
+            ->assertJson(['exito' => false]);
+        $this->assertStringContainsString('Conflicto de Profesional', $resConflictoOdo->json('mensaje'));
+
+        // 4. Conflicto de Paciente: Paciente 1 intentando tener otra cita a las 10:15 AM
+        $resConflictoPac = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente1->id, // Mismo paciente
+            'odontologo_id' => $admin->id,
+            'fecha_hora_inicio' => $horaInicio->copy()->addMinutes(15)->toDateTimeString(),
+            'duracion_minutos' => 30,
+            'unidad_sillon_numero' => 2,
+            'motivo_consulta' => 'Conflicto por paciente',
+        ]);
+        $resConflictoPac->assertStatus(422)
+            ->assertJson(['exito' => false]);
+        $this->assertStringContainsString('Conflicto de Paciente', $resConflictoPac->json('mensaje'));
+
+        // 5. Cita Consecutiva Válida: Empieza exactamente a las 10:45 AM (cuando finaliza la primera)
+        $resConsecutiva = $this->postJson('/agenda/citas', [
+            'paciente_id' => $paciente2->id,
+            'odontologo_id' => $odontologo1->id,
+            'fecha_hora_inicio' => $horaInicio->copy()->addMinutes(45)->toDateTimeString(),
+            'duracion_minutos' => 30,
+            'unidad_sillon_numero' => 1,
+            'motivo_consulta' => 'Cita consecutiva válida a las 10:45 AM',
+        ]);
+        $resConsecutiva->assertStatus(201)
+            ->assertJson(['exito' => true]);
+    }
+
+    /**
      * Test 6: Periodontograma - Sondaje de 6 puntos y cálculo de nivel de inserción clínica.
      */
     public function test_periodontograma_registra_sondaje_y_calcula_cal(): void
