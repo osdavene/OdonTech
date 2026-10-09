@@ -4,7 +4,7 @@
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.4-777bb4?logo=php&logoColor=white)](https://php.net)
 [![Framework](https://img.shields.io/badge/Laravel-12.x-ff2d20?logo=laravel&logoColor=white)](https://laravel.com)
-[![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-4479a1?logo=mysql&logoColor=white)](https://mysql.com)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Normativa](https://img.shields.io/badge/Normativa-MinSalud%20%7C%20DIAN%20%7C%20INVIMA-0284c7)](#-cumplimiento-del-marco-legal-colombiano)
 [![Licencia](https://img.shields.io/badge/Licencia-Privada%20%2F%20Comercial-0f172a)](#)
 
@@ -14,7 +14,7 @@
 
 **OdonTech** es una solución informática integral diseñada para automatizar los procesos administrativos, asistenciales, clínicos y de facturación electrónica de consultorios y clínicas odontológicas en Colombia. 
 
-Desarrollado con una arquitectura relacional sólida bajo **Laravel** y **MySQL/MariaDB**, el sistema garantiza el cumplimiento riguroso de las directrices emitidas por el **Ministerio de Salud y Protección Social (MinSalud)**, la **Dirección de Impuestos y Aduanas Nacionales (DIAN)**, el **Instituto Nacional de Vigilancia de Medicamentos y Alimentos (INVIMA)** y la **Superintendencia de Industria y Comercio (SIC - Habeas Data)**.
+Desarrollado con una arquitectura relacional sólida bajo **Laravel** y **PostgreSQL**, el sistema garantiza el cumplimiento riguroso de las directrices emitidas por el **Ministerio de Salud y Protección Social (MinSalud)**, la **Dirección de Impuestos y Aduanas Nacionales (DIAN)**, el **Instituto Nacional de Vigilancia de Medicamentos y Alimentos (INVIMA)** y la **Superintendencia de Industria y Comercio (SIC - Habeas Data)**.
 
 ---
 
@@ -79,7 +79,7 @@ Desarrollado con una arquitectura relacional sólida bajo **Laravel** y **MySQL/
 
 - **Lenguaje:** PHP 8.4+
 - **Framework:** Laravel 12.x / Boost
-- **Base de Datos:** MySQL 8.x / MariaDB 10.x (Diseño puramente relacional con claves foráneas e integridad referencial)
+- **Base de Datos:** PostgreSQL 15+ (Diseño puramente relacional con claves foráneas, JSONB e integridad referencial estricta)
 - **Frontend:** HTML5, CSS3, JavaScript modular nativo (sin dependencias pesadas), SVG vectorial interactivo y Blade Templates.
 - **Herramientas de Calidad:** PHPUnit, Laravel Boost, Git.
 
@@ -104,14 +104,14 @@ Copia el archivo de ejemplo `.env.example` a `.env`:
 cp .env.example .env
 ```
 
-Configura los datos de tu conexión MySQL y los datos del prestador de salud en el archivo `.env`:
+Configura los datos de tu conexión PostgreSQL y los datos del prestador de salud en el archivo `.env`:
 ```ini
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=5432
 DB_DATABASE=odontech
-DB_USERNAME=root
-DB_PASSWORD=
+DB_USERNAME=postgres
+DB_PASSWORD=7420
 
 # Configuración DIAN & Habilitación MinSalud
 DIAN_PTA_PROVEEDOR=factus

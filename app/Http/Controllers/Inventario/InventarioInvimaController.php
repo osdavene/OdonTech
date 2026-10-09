@@ -127,7 +127,12 @@ class InventarioInvimaController extends Controller
     {
         $alertas = AlertaInventario::with(['insumo', 'lote'])
             ->where('resuelta', false)
-            ->orderByRaw("FIELD(nivel_severidad, 'CRITICA_BLOQUEANTE', 'ALTA', 'MEDIA', 'INFORMATIVA')")
+            ->orderByRaw("CASE nivel_severidad 
+                WHEN 'CRITICA_BLOQUEANTE' THEN 1 
+                WHEN 'ALTA' THEN 2 
+                WHEN 'MEDIA' THEN 3 
+                WHEN 'INFORMATIVA' THEN 4 
+                ELSE 5 END")
             ->get();
 
         return response()->json([
