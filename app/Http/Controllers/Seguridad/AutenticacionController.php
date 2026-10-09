@@ -15,9 +15,21 @@ use Illuminate\Validation\ValidationException;
 class AutenticacionController extends Controller
 {
     /**
+     * Muestra la vista del formulario de inicio de sesión.
+     */
+    public function formularioLogin(): \Illuminate\Http\RedirectResponse|\Illuminate\View\View
+    {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.login');
+    }
+
+    /**
      * Inicio de sesión con registro inalterable de auditoría (IP, Usuario, Rol, Timestamp).
      */
-    public function ingresar(Request $request): JsonResponse
+    public function ingresar(Request $request): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         $credenciales = $request->validate([
             'correo_electronico' => ['required', 'string', 'email'],
@@ -38,9 +50,15 @@ class AutenticacionController extends Controller
                 request: $request
             );
 
-            throw ValidationException::withMessages([
-                'correo_electronico' => ['Las credenciales suministradas no coinciden con nuestros registros.'],
-            ]);
+            if ($request->wantsJson()) {
+                throw ValidationException::withMessages([
+                    'correo_electronico' => ['Las credenciales suministradas no coinciden con nuestros registros.'],
+                ]);
+            }
+
+            return back()->withErrors([
+                'correo_electronico' => 'Las credenciales suministradas no coinciden con nuestros registros o el usuario está inactivo.',
+            ])->withInput($request->only('correo_electronico'));
         }
 
         Auth::login($usuario, $request->boolean('recordar', false));
@@ -54,22 +72,26 @@ class AutenticacionController extends Controller
             request: $request
         );
 
-        return response()->json([
-            'exito' => true,
-            'mensaje' => "Bienvenido(a) {$usuario->nombre_completo}",
-            'usuario' => [
-                'id' => $usuario->id,
-                'nombre_completo' => $usuario->nombre_completo,
-                'rol' => $usuario->rol->nombre,
-                'registro_profesional' => $usuario->registro_profesional,
-            ],
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'exito' => true,
+                'mensaje' => "Bienvenido(a) {$usuario->nombre_completo}",
+                'usuario' => [
+                    'id' => $usuario->id,
+                    'nombre_completo' => $usuario->nombre_completo,
+                    'rol' => $usuario->rol->nombre,
+                    'registro_profesional' => $usuario->registro_profesional,
+                ],
+            ]);
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
      * Cierre de sesión y descarte de token/sesión.
      */
-    public function salir(Request $request): JsonResponse
+    public function salir(Request $request): \Illuminate\Http\RedirectResponse|JsonResponse
     {
         $usuario = Auth::user();
 
@@ -87,10 +109,14 @@ class AutenticacionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json([
-            'exito' => true,
-            'mensaje' => 'Sesión cerrada correctamente.',
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'exito' => true,
+                'mensaje' => 'Sesión cerrada correctamente.',
+            ]);
+        }
+
+        return redirect()->route('login')->with('mensaje', 'Sesión cerrada correctamente.');
     }
 
     /**

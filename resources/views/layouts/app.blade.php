@@ -124,9 +124,26 @@
             </li>
         </ul>
         <div class="pie-usuario">
-            <strong>Usuario Activo:</strong><br>
-            Dr. Carlos Morales (Odontólogo)<br>
-            <span style="color: #38bdf8;">ReTHUS: TP-ODO-54891</span>
+            <div style="margin-bottom: 6px;">
+                <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: bold;">Usuario en Turno:</span>
+                <div style="color: #f1f5f9; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">
+                    {{ Auth::user()->nombre_completo ?? 'Dr. Carlos Morales' }}
+                </div>
+                <div style="color: #38bdf8; font-size: 0.75rem; margin-top: 1px;">
+                    Rol: {{ Auth::user()->rol->nombre ?? 'Odontólogo' }}
+                </div>
+                @if (Auth::user()?->registro_profesional)
+                    <div style="color: #94a3b8; font-size: 0.7rem; margin-top: 1px;">
+                        ReTHUS: {{ Auth::user()->registro_profesional }}
+                    </div>
+                @endif
+            </div>
+            <form action="{{ route('seguridad.salir') }}" method="POST" style="margin-top: 10px;">
+                @csrf
+                <button type="submit" style="width: 100%; padding: 6px 10px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    🚪 Cerrar Sesión
+                </button>
+            </form>
         </div>
     </aside>
 

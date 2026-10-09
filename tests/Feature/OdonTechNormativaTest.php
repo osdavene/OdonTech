@@ -385,6 +385,55 @@ class OdonTechNormativaTest extends TestCase
             ->assertSee('Odontograma Anatómico FDI')
             ->assertSee('Sondaje Periodontal Milimétrico');
     }
+
+    /**
+     * Test 9: Autenticación web, sesiones seguras y auditoría inalterable de acceso (Ley 1581 de 2012).
+     */
+    public function test_inicio_sesion_web_roles_y_cierre(): void
+    {
+        // 1. Intento fallido con contraseña incorrecta
+        $resFallido = $this->post('/login', [
+            'correo_electronico' => 'odontologo@odontech.com.co',
+            'contrasena' => 'ContrasenaIncorrecta123*',
+        ]);
+        $resFallido->assertSessionHasErrors('correo_electronico');
+        $this->assertGuest();
+
+        // 2. Inicio de sesión exitoso
+        $resExito = $this->post('/login', [
+            'correo_electronico' => 'odontologo@odontech.com.co',
+            'contrasena' => 'Odonto2026*',
+        ]);
+        $resExito->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+
+        // Verificar registro de auditoría de inicio de sesión
+        $this->assertDatabaseHas('auditorias_accesos', [
+            'tipo_evento' => 'INICIO_SESION',
+            'rol_usuario' => 'Odontólogo',
+        ]);
+
+        // 3. Cierre de sesión
+        $resSalir = $this->post('/salir');
+        $resSalir->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    /**
+     * Test 10: Protección de rutas sanitarias para usuarios no autenticados.
+     */
+    public function test_proteccion_rutas_sanitarias_redirecciona_a_login(): void
+    {
+        // Un usuario anónimo no puede ingresar a la estación clínica ni al dashboard
+        $resDashboard = $this->get('/dashboard');
+        $resDashboard->assertRedirect(route('login'));
+
+        $resEstacion = $this->get('/clinico/estacion');
+        $resEstacion->assertRedirect(route('login'));
+
+        $resFacturacion = $this->get('/facturacion/panel');
+        $resFacturacion->assertRedirect(route('login'));
+    }
 }
 
 
