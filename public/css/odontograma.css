@@ -1,0 +1,262 @@
+/* OdonTech Colombia - Estilos del Odontograma Interactivo FDI */
+:root {
+    --color-fondo: #f8fafc;
+    --color-tarjeta: #ffffff;
+    --color-borde: #e2e8f0;
+    --color-texto: #0f172a;
+    --color-texto-muted: #64748b;
+    --color-primario: #0284c7;
+    --color-primario-hover: #0369a1;
+
+    /* Convención Clínica Universal Odontológica */
+    --color-caries: #ef4444; /* Rojo */
+    --color-resina: #3b82f6; /* Azul */
+    --color-amalgama: #64748b; /* Gris plata */
+    --color-sellante: #eab308; /* Amarillo */
+    --color-fractura: #84cc16; /* Verde lima */
+    --color-sano: #ffffff; /* Blanco */
+    --color-diente-borde: #334155;
+    --color-ausente: #991b1b;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    margin: 0;
+    padding: 20px;
+}
+
+.contenedor-odontograma {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: var(--color-tarjeta);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: 1px solid var(--color-borde);
+    padding: 24px;
+}
+
+.cabecera-clinica {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--color-borde);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+}
+
+.cabecera-clinica h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--color-primario);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.insignia-normativa {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    border: 1px solid #bae6fd;
+}
+
+/* Barra de Herramientas y Convenciones */
+.barra-herramientas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #f1f5f9;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    align-items: center;
+}
+
+.grupo-herramienta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-herramienta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid var(--color-borde);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-herramienta:hover {
+    border-color: var(--color-primario);
+}
+
+.btn-herramienta.activo {
+    border-color: var(--color-primario);
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.muestra-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    display: inline-block;
+}
+
+/* Área de los Dientes */
+.arco-dental {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.cuadrante-fdi {
+    display: flex;
+    gap: 8px;
+}
+
+.separador-linea-media {
+    width: 2px;
+    background: #94a3b8;
+    height: 100px;
+    align-self: center;
+}
+
+.cuadro-diente {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+}
+
+.numero-fdi {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-texto-muted);
+}
+
+/* Geometría Anatómica del Diente en SVG */
+.svg-diente {
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.svg-diente:hover {
+    transform: scale(1.08);
+}
+
+.superficie {
+    fill: var(--color-sano);
+    stroke: var(--color-diente-borde);
+    stroke-width: 1.2;
+    transition: fill 0.15s ease;
+}
+
+.superficie:hover {
+    filter: brightness(0.9);
+}
+
+.superficie.caries { fill: var(--color-caries) !important; }
+.superficie.resina { fill: var(--color-resina) !important; }
+.superficie.amalgama { fill: var(--color-amalgama) !important; }
+.superficie.sellante { fill: var(--color-sellante) !important; }
+.superficie.fractura { fill: var(--color-fractura) !important; }
+
+/* Estados globales del diente */
+.diente-ausente {
+    opacity: 0.35;
+    position: relative;
+}
+
+.diente-ausente::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    color: var(--color-ausente);
+    font-weight: bold;
+}
+
+/* Resumen Clínico */
+.panel-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+    border-top: 1px solid var(--color-borde);
+    padding-top: 20px;
+}
+
+.tarjeta-estadistica {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-borde);
+}
+
+.tarjeta-estadistica .etiqueta {
+    font-size: 0.75rem;
+    color: var(--color-texto-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.tarjeta-estadistica .valor {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-texto);
+    margin-top: 4px;
+}
+
+.botones-accion {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn-accion {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.btn-primario {
+    background: var(--color-primario);
+    color: white;
+}
+
+.btn-primario:hover {
+    background: var(--color-primario-hover);
+}
+
+.btn-secundario {
+    background: #e2e8f0;
+    color: var(--color-texto);
+}
+
+.btn-secundario:hover {
+    background: #cbd5e1;
+}
